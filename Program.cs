@@ -1,6 +1,6 @@
 using System;
+using System.Net.Security;
 using System.Runtime.InteropServices;
-
 
 class Program
 {
@@ -62,6 +62,8 @@ class Program
         public int HealthPoint;
         public int Gold;
 
+        public int EXP = 0;
+
         public int equipAttackEffect;
         public int equipDeffenseEffect;
 
@@ -113,6 +115,99 @@ class Program
         }
     }
 
+    class Dungeon
+    {
+        public string Name;
+        public string Difficult;
+        public int NeedDiffense;
+        public int ClearGold;
+
+        public Dungeon(string name, string difficult, int needdiffense, int cleargold)
+        {
+            this.Name = name;
+            this.Difficult = difficult;
+            this.NeedDiffense = needdiffense;
+            this.ClearGold = cleargold;
+        }
+
+        public void showDungeon()
+        {
+            Console.WriteLine(Difficult + "\t| 방어력 " + NeedDiffense + " 이상 권장");
+        }
+        public void DungeonClear(Character A)
+        {
+            if (A.DeffensePoint < NeedDiffense)
+            {
+                Random rand = new Random();
+                int HP = rand.Next(20, 35);
+
+                A.HealthPoint -= (HP - (A.DeffensePoint - NeedDiffense));
+
+                if (A.HealthPoint < 0)
+                {
+                    Console.Clear();
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("당신은 정신을 잃고 쓰러졌습니다");
+                    Console.WriteLine("(마을에서 부활합니다)");
+
+                    A.HealthPoint = 1;
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("던전 실패...");
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("[던전 결과]");
+                    Console.WriteLine("체력 " + A.HealthPoint + "(-" + (HP - (A.DeffensePoint - NeedDiffense)) + ")");
+                }
+            }
+            else
+            {
+                Random rand1 = new Random();
+                Random rand2 = new Random();
+                int HP = rand1.Next(20, 35);
+                int Gold = rand2.Next(1, 3);
+
+
+                A.HealthPoint -= (HP - (A.DeffensePoint - NeedDiffense));
+
+                if (A.HealthPoint < 0)
+                {
+                    Console.Clear();
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("당신은 정신을 잃고 쓰러졌습니다");
+                    Console.WriteLine("(마을에서 부활합니다)");
+
+                    A.HealthPoint = 1;
+                }
+                else
+                {
+                    A.Gold += (int)((float)ClearGold * (float)(0.1 * A.AttackPoint * Gold));
+
+                    Console.Clear();
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("던전 클리어!!!");
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("[던전 결과]");
+                    Console.WriteLine("체력 " + A.HealthPoint + "(-" + (HP - (A.DeffensePoint - NeedDiffense)) + ")");
+                    Console.WriteLine("골드 " + A.Gold + "(+" + (int)((float)ClearGold * (float)(0.1 * A.AttackPoint * Gold)) + ")");
+
+                    A.EXP++;
+                    if(A.EXP >= A.Level)
+                    {
+                        Console.Write("레벨이 올랐습니다!!" + A.Level);
+                        A.EXP -= A.Level;
+                        A.Level++;
+                        A.AttackPoint += A.Level % 2;
+                        A.DeffensePoint++;
+                        Console.WriteLine(" -> " + A.Level);
+                    }
+                }
+            }
+        }
+    }
+
     static void showMain()
     {
         Console.Clear();
@@ -123,6 +218,8 @@ class Program
         Console.WriteLine("1. 상태보기");
         Console.WriteLine("2. 인벤토리");
         Console.WriteLine("3. 상점");
+        Console.WriteLine("4. 던전입장");
+        Console.WriteLine("5. 휴식하기");
         Console.WriteLine("==============================================");
     }
 
@@ -263,7 +360,12 @@ class Program
     {
         Character Chad = new Character(1, "Chad", "전사", 10, 5, 100, 5000, false, false);
 
-        Item noviceArmor = new Item(0, "수련자 갑옷", "수련에 도움을 주는 갑옷입니다.", "방어력 +5", 1000, false, false,"Armor");
+        Dungeon Easy = new Dungeon("쉬운 던전", "쉬운 던전", 5, 1000);
+        Dungeon Normal = new Dungeon("보통 던전", "보통 던전", 11, 1700);
+        Dungeon Hard = new Dungeon("어려운 던전", "어려운 던전", 17, 2500);
+        Dungeon[] dungeons = {Easy, Normal, Hard};
+
+        Item noviceArmor = new Item(0, "수련자 갑옷", "수련에 도움을 주는 갑옷입니다.", "방어력 +5", 1000, false, false, "Armor");
         Item MetalArmor = new Item(1, "무쇠갑옷", "무쇠로 만들어져 튼튼한 갑옷입니다.", "방어력 +9", 2000, false, true, "Armor");
         Item SpartaArmor = new Item(2, "영웅의 갑옷", "영웅들이 사용했던 전설의 갑옷입니다.", "방어력 +15", 3500, false, false, "Armor");
         Item OldSword = new Item(3, "낡은 검", "쉽게 볼 수 있는 낡은 검 입니다.", "공격력 +2", 600, false, true, "Weapon");
@@ -309,9 +411,9 @@ class Program
                             }
                             else
                             {
-                                if (myItem[i-1].type == "Armor")
+                                if (myItem[i - 1].type == "Armor")
                                 {
-                                    if(Chad.equipArmor)
+                                    if (Chad.equipArmor)
                                     {
                                         for (int i2 = 0; i2 < myItem.Length; i2++)
                                         {
@@ -456,15 +558,15 @@ class Program
                                     Chad.EquipExitItem(myItem[i - 1]);
                                 }
                                 ShopItem[myItem[i - 1].Id].isBuy = false;
-                                Chad.Gold += (int)((float)ShopItem[myItem[i - 1].Id].Price*0.85);
+                                Chad.Gold += (int)((float)ShopItem[myItem[i - 1].Id].Price * 0.85);
                                 Console.Clear();
 
                                 Console.WriteLine((int)((float)ShopItem[myItem[i - 1].Id].Price * 0.85) + "G를 획득 했습니다.");
                                 Console.WriteLine("==============================================");
 
-                                for (int j = i-1; j < myItem.Length - 1; j++) 
+                                for (int j = i - 1; j < myItem.Length - 1; j++)
                                 {
-                                    myItem[j] = myItem[j+1];
+                                    myItem[j] = myItem[j + 1];
                                 }
                                 Array.Resize(ref myItem, myItem.Length - 1);
 
@@ -472,6 +574,86 @@ class Program
 
                             }
                         }
+                    }
+                }
+                else if (input != "0")
+                { input = exit(); }
+            }
+            else if (input == "4")
+            {
+                Console.Clear();
+                Console.WriteLine("==============================================");
+                for (int i = 0; i < dungeons.Length; i++)
+                {
+                    Console.Write(i + 1 + ". ");
+                    dungeons[i].showDungeon();
+                }
+                Console.WriteLine("==============================================");
+                Console.WriteLine("0. 나가기");
+                Console.WriteLine("");
+                input = inputText();
+
+                if (input == "1")
+                {
+                    dungeons[0].DungeonClear(Chad);
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("0. 나가기");
+                    Console.WriteLine("");
+                    input = inputText();
+                }
+                if (input == "2")
+                {
+                    dungeons[1].DungeonClear(Chad);
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("0. 나가기");
+                    Console.WriteLine("");
+                    input = inputText();
+                }
+                if (input == "3")
+                {
+                    dungeons[2].DungeonClear(Chad);
+                    Console.WriteLine("==============================================");
+                    Console.WriteLine("0. 나가기");
+                    Console.WriteLine("");
+                    input = inputText();
+                }
+                else if (input != "0")
+                { input = exit(); }
+            }
+            else if (input == "5")
+            {
+                Console.Clear();
+                Console.WriteLine("==============================================");
+                Console.WriteLine("500G를 소비하여 체력을 회복합니다.");
+                Console.WriteLine("==============================================");
+                Console.WriteLine("1. 휴식하기");
+                Console.WriteLine("0. 나가기");
+                Console.WriteLine("");
+                input = inputText();
+                if (input == "1")
+                {
+                    if (Chad.Gold < 500)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("==============================================");
+                        Console.WriteLine("골드가 부족합니다.");
+                        Console.WriteLine("==============================================");
+                        Console.WriteLine("0. 나가기");
+                        Console.WriteLine("");
+                        input = inputText();
+                    }
+                    else
+                    {
+                        Chad.HealthPoint = 100;
+                        Chad.Gold -= 500;
+
+                        Console.Clear();
+                        Console.WriteLine("==============================================");
+                        Console.WriteLine("체력을 회복했습니다.");
+                        Console.WriteLine("==============================================");
+                        Console.WriteLine("0. 나가기");
+                        Console.WriteLine("");
+                        input = inputText();
                     }
                 }
                 else if (input != "0")
